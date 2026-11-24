@@ -171,8 +171,8 @@ export function playRound({ root, session, subject, onChange = () => {}, onFinis
       h += '<div class="hint keys">' + (!optionsShown
         ? '<kbd>space</kbd> show options · <kbd>0</kbd> don\'t know'
         : isSelect()
-          ? '<kbd>1</kbd>–<kbd>' + q.options.length + '</kbd> tick or untick · <kbd>enter</kbd> check · <kbd>0</kbd> don\'t know'
-          : '<kbd>1</kbd>–<kbd>' + q.options.length + '</kbd> answer · <kbd>0</kbd> don\'t know') + ' · <kbd>R</kbd> recall-first auto/on/off</div>';
+          ? '<kbd>1</kbd>–<kbd>' + Math.min(9, q.options.length) + '</kbd> tick or untick · <kbd>enter</kbd> check · <kbd>0</kbd> don\'t know'
+          : '<kbd>1</kbd>–<kbd>' + Math.min(9, q.options.length) + '</kbd> answer · <kbd>0</kbd> don\'t know') + ' · <kbd>R</kbd> recall-first auto/on/off</div>';
     } else {
       h += verdict();
       h += '<div class="explain">' + render(reveal.explanation, MATH) + '</div>';
@@ -331,7 +331,7 @@ export function playRound({ root, session, subject, onChange = () => {}, onFinis
         if (k === ' ' || k === 'ENTER') { e.preventDefault(); showOptions(); } else if (k === '0' || k === '?') answer(null);
         return;
       }
-      const i = '123456'.indexOf(k);
+      const i = '123456789'.indexOf(k);  // options past 9 are tapped or clicked
       if (i >= 0 && i < q.options.length) (isSelect() ? toggle : answer)(i);
       else if (k === '0' || k === '?') answer(null);
       else if (isSelect() && (k === ' ' || k === 'ENTER')) { e.preventDefault(); check(); }

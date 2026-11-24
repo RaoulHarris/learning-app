@@ -8,7 +8,7 @@
 // Only the app's own files are handled here: calls to GitHub go straight
 // to the network, and the subjects' files are kept by the app in IndexedDB.
 
-const VERSION = 'c1566040fe';
+const VERSION = '18a52fe9da';
 const FILES = [
   "./",
   "index.html",

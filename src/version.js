@@ -1,2 +1,2 @@
 // Written by tools/publish_app.py.
-export const VERSION = 'c1566040fe';
+export const VERSION = '18a52fe9da';

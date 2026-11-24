@@ -25,6 +25,9 @@ body {
   font: 16px/1.55 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
 }
 #app, .roundview { display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+/* Fill the screen's width, never the content's: a wide table scrolls inside its box. */
+.roundview { width: 100%; }
+main { min-width: 0; }
 
 /* --- top bars ------------------------------------------------------------ */
 header.top, header.roundbar {
@@ -155,7 +158,7 @@ textarea {
 .scroll { overflow-x: auto; }
 .stats table { border-collapse: collapse; width: 100%; font-size: 14px; }
 .stats th, .stats td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
-.stats th { color: var(--faint); font-weight: 600; font-size: 12px; }
+.stats th { color: var(--faint); font-weight: 600; font-size: 12px; white-space: normal; vertical-align: bottom; }
 .stats th:first-child, .stats td:first-child { text-align: left; }
 .stats td.title { white-space: normal; min-width: 160px; }
 .stats tr.total td { font-weight: 600; border-top: 1px solid var(--faint); }
@@ -168,4 +171,7 @@ mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; }
   .panel { padding: 16px; }
   .stem { font-size: 16px; }
   header.roundbar { font-size: 12px; }
+  .stats table { font-size: 13px; }
+  .stats th, .stats td { padding: 4px 5px; }
+  .stats td.title { min-width: 120px; }
 }

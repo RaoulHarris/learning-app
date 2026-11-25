@@ -97,7 +97,7 @@ export function uses(entries) {
     const key = e.source || e.qid;
     let u = out.get(key);
     if (!u) {
-      u = { answered: false, right: false, bad: false, noted: false, last_ts: '' };
+      u = { answered: false, right: false, bad: false, noted: false, last_ts: '', first_ts: '' };
       out.set(key, u);
     }
     u.answered = true;
@@ -105,6 +105,7 @@ export function uses(entries) {
     if (e.outcome === 'right' && !e.repeat) u.right = true;
     if (e.note) u.noted = true;
     if (e.ts && (!u.last_ts || epoch(e.ts) > epoch(u.last_ts))) u.last_ts = e.ts; // the latest instant
+    if (e.ts && (!u.first_ts || epoch(e.ts) < epoch(u.first_ts))) u.first_ts = e.ts; // the earliest
   }
   return out;
 }
@@ -114,6 +115,15 @@ export function status(use) {
   if (use.bad) return RETIRED;
   if (use.right) return SPENT;
   return MISSED;
+}
+
+/** Since this instant every question on a list point shows the whole list. A
+ * missed list question first asked before it may show only some members, so it
+ * never comes back as a fallback: the point waits for a fresh question. */
+export const WHOLE_LISTS_SINCE = '2026-11-24T19:22:25+00:00';
+
+export function beforeWholeLists(item, use) {
+  return item.kind === 'list' && Boolean(use.first_ts) && epoch(use.first_ts) < epoch(WHOLE_LISTS_SINCE);
 }
 
 /** Whether a question still fits its point: written for the current
@@ -151,7 +161,8 @@ export class Pool {
 
   missed(itemId) {
     return (this.by_item.get(itemId) ?? [])
-      .filter((w) => status(this.use.get(w.qid)) === MISSED && !this.use.get(w.qid).noted);
+      .filter((w) => status(this.use.get(w.qid)) === MISSED && !this.use.get(w.qid).noted
+        && !beforeWholeLists(this.items.get(itemId), this.use.get(w.qid)));
   }
 
   /** A fresh question first (one written for ``level`` if there is one, else

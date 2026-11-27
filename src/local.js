@@ -8,7 +8,9 @@
 //           is the git blob sha, so a file is fetched again only if it changed)
 //   outbox  {id, path, mode, text}: what this device wrote, oldest first;
 //           mode "append" adds text to the end of the file (a log), "put"
-//           replaces it (a round's brief or questions)
+//           replaces it (a round's brief or questions), "weight" ({slug,
+//           weight} instead of text) sets one subject's review weight in
+//           subjects/reviews.json
 //   kv      small values: the last sync, its result
 
 const DB_NAME = 'learn';

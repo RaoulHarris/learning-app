@@ -16,6 +16,7 @@
 
 import { RoundSession } from '../engine/session.js';
 import { logLine } from '../engine/store.js';
+import { reviewWeight } from '../engine/subject.js';
 import { subjectSummary } from '../engine/summary.js';
 import { nowEpoch, nowTs } from '../engine/time.js';
 import {
@@ -25,7 +26,7 @@ import { GitHub } from './github.js';
 import { openLocal } from './local.js';
 import { esc } from './render.js';
 import { playRound } from './round.js';
-import { sync } from './sync.js';
+import { ROOT, sync } from './sync.js';
 import { VERSION } from './version.js';
 
 const app = document.getElementById('app');
@@ -67,6 +68,7 @@ let syncError = null;
 let syncNote = '';
 let writes = Promise.resolve(); // log appends, in order
 const openUnits = new Set(); // subjects whose new units are shown
+let weightsOpen = false; // the review weights panel is open
 
 function github() {
   const gh = new GitHub({ repo: getItem(KEYS.repo), token: getItem(KEYS.token) });
@@ -283,7 +285,34 @@ async function request(subj, units) {
   syncNow();
 }
 
+/** Set a subject's review weight (subjects/reviews.json): kept as an edit in
+ * the outbox, applied to the latest version of the file when it is sent. */
+async function setWeight(slug, weight) {
+  await local.outbox.add({ path: `${ROOT}/reviews.json`, mode: 'weight', slug, weight });
+  await refresh();
+  drawHome();
+  syncNow();
+}
+
 // --- home ---------------------------------------------------------------
+
+const WEIGHTS = [0, 0.5, 1, 2, 3];
+
+function weightsPanel() {
+  let h = `<details class="panel" id="weights"${weightsOpen ? ' open' : ''}><summary>Review weights</summary>
+    <p class="dim">How readily each subject is picked for a review round: 0 never (you can still start one from
+    its own card), 1 normal, higher more often.</p><table class="units">`;
+  for (const s of lib.subjects) {
+    let w = null;
+    try { w = reviewWeight(s.subject, lib.reviews); } catch (exc) { /* shown as unset */ }
+    const options = [...new Set([...WEIGHTS, ...(w === null ? [] : [w])])].sort((a, b) => a - b);
+    h += `<tr><td>${esc(s.subject.title)}</td><td><select data-slug="${esc(s.slug)}" aria-label="weight">`
+      + (w === null ? '<option selected disabled>?</option>' : '')
+      + options.map((o) => `<option value="${o}"${o === w ? ' selected' : ''}>${o}</option>`).join('')
+      + '</select></td></tr>';
+  }
+  return h + '</table></details>';
+}
 
 async function goHome() {
   if (teardown) teardown();
@@ -366,6 +395,7 @@ function drawHome() {
       h += `<details class="panel"${rest.some((s) => openUnits.has(s.folder)) ? ' open' : ''}><summary>${esc(g)}</summary>`
         + rest.filter((s) => s.subject.collection === g).map((s) => subjectCard(s, now)).join('') + '</details>';
     }
+    h += weightsPanel();
     if (lib.problems.length) {
       h += '<div class="panel"><p class="error">Could not read:</p><ul>' + lib.problems.map((p) => `<li>${esc(p)}</li>`).join('') + '</ul></div>';
     }
@@ -381,6 +411,10 @@ function drawHome() {
       startRound(lib.subjects.find((s) => s.slug === ranked[0].slug), REVIEW);
     }
   });
+  document.getElementById('weights')?.addEventListener('toggle', (e) => { weightsOpen = e.target.open; });
+  app.querySelectorAll('#weights select').forEach((sel) => sel.addEventListener('change', () => {
+    setWeight(sel.dataset.slug, Number(sel.value));
+  }));
   app.querySelectorAll('.subject button[data-act]').forEach((b) => b.addEventListener('click', () => {
     const subj = lib.subjects.find((s) => s.folder === b.closest('.subject').dataset.folder);
     const act = b.dataset.act;

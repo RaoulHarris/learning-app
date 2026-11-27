@@ -1,11 +1,14 @@
 // Syncing with the data repo: fetch what changed, push what this device wrote.
 //
-// A device only ever writes its own files, so pushes never clash with each
-// other's content: its answers (subjects/<slug>/logs/<device>.jsonl), the
-// rounds it started (subjects/<slug>/rounds/<device>-<n>/) and its requests
-// (subjects/<slug>/requests/<device>.jsonl). If the branch moved between
-// reading it and pushing (the laptop pushed), the sync simply starts again
-// from the new head.
+// A device writes its own files, so pushes never clash with each other's
+// content: its answers (subjects/<slug>/logs/<device>.jsonl), the rounds it
+// started (subjects/<slug>/rounds/<device>-<n>/) and its requests
+// (subjects/<slug>/requests/<device>.jsonl). The one shared file it changes is
+// subjects/reviews.json, the review weights: a weight change is kept as an
+// edit ("weight" in the outbox), applied to the latest version of the file at
+// each push, so a change made elsewhere meanwhile is kept. If the branch moved
+// between reading it and pushing (the laptop pushed), the sync simply starts
+// again from the new head.
 //
 // What is fetched, by blob sha (a file is fetched again only when it changed):
 //   1. every subject's subject.json, inventory.json, logs, requests and
@@ -16,6 +19,7 @@
 
 import { MISSED, status, uses } from '../engine/ahead.js';
 import { mergeLogs, readLog } from '../engine/store.js';
+import { TOP, parseReviews, reviewsText, withWeight } from '../engine/subject.js';
 import { nowTs } from '../engine/time.js';
 import { Conflict, blobSha } from './github.js';
 
@@ -87,6 +91,10 @@ export function overlay(texts, outbox) {
       if (r.mode === 'put') {
         appends = [];
         text = r.text;
+      } else if (r.mode === 'weight') {
+        flush();
+        const subject = { slug: r.slug, collection: r.slug.includes('/') ? r.slug.split('/')[0] : TOP };
+        text = reviewsText(withWeight(parseReviews(text ?? null), subject, r.weight));
       } else appends.push(r.text);
     }
     flush();

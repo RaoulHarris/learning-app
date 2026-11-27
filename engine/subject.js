@@ -140,6 +140,28 @@ export function reviewWeight(subject, config = {}) {
   return value;
 }
 
+/** ``config`` with ``subject``'s weight set to ``weight``: an override, or
+ * none when the weight is its collection's default anyway. ``subject`` needs
+ * only slug and collection. */
+export function withWeight(config, subject, weight) {
+  if (typeof weight !== 'number' || Number.isNaN(weight) || weight < 0) {
+    throw new Error(`a weight must be a number of at least 0, not ${JSON.stringify(weight)}`);
+  }
+  const overrides = { ...(config.overrides ?? {}) };
+  delete overrides[subject.slug];
+  const out = { ...config, overrides };
+  if (reviewWeight(subject, out) !== weight) overrides[subject.slug] = weight;
+  return out;
+}
+
+/** reviews.json's text, laid out as the hand-written file is: one line per
+ * top-level key. */
+export function reviewsText(config) {
+  const inline = (obj) => '{' + Object.entries(obj).map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(', ') + '}';
+  const lines = Object.entries(config).map(([k, v]) => `  ${JSON.stringify(k)}: ${v && typeof v === 'object' ? inline(v) : JSON.stringify(v)}`);
+  return `{\n${lines.join(',\n')}\n}\n`;
+}
+
 /** Slugs named in the overrides that match no subject (typos). */
 export function unknownOverrides(config, slugs) {
   const known = new Set(slugs);

@@ -1,7 +1,8 @@
 // Questions written ahead and which can still be asked (learn/ahead.py).
 //
-// A written question has a permanent id: tNNNN-qMM (a top-up batch) or
-// rNNNN-qMM (written for a round). Its use is read from the log only:
+// A written question has a permanent id, stored in it as `id`: tNNNN-qMM (a
+// top-up batch) or rNNNN-qMM (written for a round). One marked `removed` is
+// never asked. Its use is read from the log only:
 //   fresh   never answered: asked first;
 //   spent   answered right first time: never again;
 //   retired flagged bad: never again;
@@ -56,10 +57,11 @@ export function writtenQuestions({ topups = [], rounds = [], state }) {
   for (const b of [...topups].sort((x, y) => x.number - y.number)) {
     if (!b.brief || !b.questions || !b.ready) continue;
     const slots = new Map(b.brief.slots.map((s) => [s.item, s]));
-    b.questions.questions.forEach((q, k) => {
+    b.questions.questions.forEach((q) => {
+      if (q.removed) return;
       const slot = slots.get(q.item) ?? {};
       out.push({
-        qid: `t${pad(b.number, 4)}-q${pad(k + 1, 2)}`,
+        qid: q.id,
         item: q.item,
         question: q,
         level: slot.level ?? null,
@@ -76,7 +78,8 @@ export function writtenQuestions({ topups = [], rounds = [], state }) {
       // The brief's slot says what the question was written against.
       const slot = slots[k]?.item === q.item ? slots[k] : null;
       out.push({
-        qid: qid(r.number, k),
+        // Served before ids were stored: its id is its position, which never changed.
+        qid: q.id || qid(r.number, k),
         item: q.item,
         question: q,
         level: slot?.level ?? null,
@@ -180,5 +183,7 @@ export class Pool {
 
 /** A full copy of a written question for a round's questions file. */
 export function copyForRound(w, slot) {
-  return { ...structuredClone(w.question), slot, source: w.qid };
+  const q = { ...structuredClone(w.question), slot, source: w.qid };
+  delete q.id; // a copy is known by its source
+  return q;
 }

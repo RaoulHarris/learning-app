@@ -275,7 +275,8 @@ export class RoundSession {
       note: p.note,
       ts: this.clock(),
     };
-    if (q.source) entry.source = q.source; // the written question's permanent id
+    // The written question's permanent id: a copy's source, or its own.
+    if (q.source || q.id) entry.source = q.source || q.id;
     this.append([structuredClone(entry)]);
     if (!p.repeat) {
       this.tally[p.outcome] += 1;
